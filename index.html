@@ -394,18 +394,15 @@
 
   <div class="results-panel">
     <div class="placeholder" id="placeholder">
-      <svg width="200" height="130" viewBox="0 0 200 130" fill="none">
-        <circle cx="160" cy="30" r="20" fill="#a8c4de" opacity="0.5"/>
-        <circle cx="160" cy="30" r="14" fill="#c8dff0" opacity="0.7"/>
-        <path d="M0 130 L40 70 L80 100 L110 60 L160 110 L200 80 L200 130Z" fill="#d0dce8" opacity="0.5"/>
-        <path d="M0 130 L60 80 L100 100 L140 65 L200 105 L200 130Z" fill="#e0ecf5" opacity="0.6"/>
-        <rect x="80" y="85" width="30" height="25" rx="2" fill="#7ba3c9" opacity="0.4"/>
-        <polygon points="95,72 75,90 115,90" fill="#7ba3c9" opacity="0.35"/>
-        <circle cx="40" cy="95" r="10" fill="#7eb88a" opacity="0.4"/>
-        <circle cx="55" cy="92" r="8" fill="#7eb88a" opacity="0.3"/>
-        <rect x="38" y="100" width="4" height="12" rx="2" fill="#b0a89e" opacity="0.4"/>
-      </svg>
-      <p>填好左侧的信息<br>点击「看看我的退休生活」<br>就能看见未来的样子 🌿</p>
+      <div class="scene-card" style="width:100%">
+        <div class="scene-title">退休后的生活，可以是这样的</div>
+        <div class="scene-items" id="sceneItems">
+          <div class="scene-item"><span class="scene-emoji">☕</span><div><div class="scene-text">每天睡到自然醒</div><div class="scene-sub">再也不用定闹钟了</div></div></div>
+          <div class="scene-item"><span class="scene-emoji">🌿</span><div><div class="scene-text">在喜欢的地方住下</div><div class="scene-sub">想去哪儿就去哪儿</div></div></div>
+          <div class="scene-item"><span class="scene-emoji">📚</span><div><div class="scene-text">终于有大把时间读书</div><div class="scene-sub">书架上那些落灰的书可以看了</div></div></div>
+          <div class="scene-item"><span class="scene-emoji">🎨</span><div><div class="scene-text">学点感兴趣的事</div><div class="scene-sub">书法、绘画、音乐……年轻时没时间的那些</div></div></div>
+        </div>
+      </div>
     </div>
 
     <div id="resultsPanel">
@@ -662,32 +659,46 @@ function calc() {
   var currentMonthlyExp = fixedExp + flexExp;
   var survival = currentMonthlyExp > 0 ? Math.round(liquidAsset / currentMonthlyExp) : 999;
 
-  // 工作期积累（折现到退休时，假设通胀2%/年）
-  var yearsToPlan = Math.max(0, planRetireAge - age);
-  var monthlyCurrentNet = income - currentMonthlyExp; // 单位：万元/月
-  var inflRate = 0.02; // 年通胀率
-  // 未来n年净结余折现到今天的因子：(1-(1+r)^-n)/r（无量纲）
-  var discFactorPlan = yearsToPlan > 0 ? (1 - Math.pow(1 + inflRate, -yearsToPlan)) / inflRate : 0;
-  // 当前净资产折现到退休时的因子：(1+r)^-n（无量纲）
-  var discCurrentPlan = Math.pow(1 + inflRate, -yearsToPlan);
-  // 所有输入单位都是万元，这里直接运算不加倍数
-  var netAtPlanRetire = Math.max(0, Math.round((monthlyCurrentNet * 12 * discFactorPlan + netAsset * discCurrentPlan) * 100) / 100);
-  // 10年后净资产（折现）
-  var discFactor10 = (1 - Math.pow(1 + inflRate, -10)) / inflRate;
-  var discCurrent10 = Math.pow(1 + inflRate, -10);
-  var net10 = Math.max(0, Math.round((monthlyCurrentNet * 12 * discFactor10 + netAsset * discCurrent10) * 100) / 100);
+  var inflRate = 0.02;    // 通胀率：用于折算"今天的购买力"
+  var retRate  = 0.05;    // 投资回报率：资产在退休前的年化增值（保守5%，可调整）
 
-  // ===== 阶段一 =====
+  var yearsToPlan = Math.max(0, planRetireAge - age);      // 距计划退休还有几年
+  var yearsToLegal = Math.max(0, legalRetireAge - age);    // 距法定退休还有几年
+
+  var monthlyCurrentNet = income - currentMonthlyExp;       // 月净结余（工作期），单位：万/月
+
+  // ===== 分段净值计算 =====
+  // 阶段A：从现在到计划退休——仍在工作，月净结余累加
+  var workYears = yearsToPlan;
+  var workNet = monthlyCurrentNet * 12;  // 年净结余（万/年）
+  // FV = PV*(1+r)^n + PMT*((1+r)^n-1)/r
+  var fvWork = netAsset * Math.pow(1 + retRate, workYears) + (workYears > 0 ? workNet * (Math.pow(1 + retRate, workYears) - 1) / retRate : 0);
+
+  // 阶段B：从计划退休到法定退休——无工资，用retireIncome扛支出
+  var phase1Years = Math.max(0, legalRetireAge - planRetireAge);
+  var retireMonthlyNet = retireExpW - retireIncome;  // 退休期月净消耗（万/月），正值=消耗
+  var retireAnnualNet = retireMonthlyNet * 12;        // 退休期年净变化（万/年），正值=减少
+  // 此阶段资产持续消耗（按retRate增值/减值）
+  var fvAtLegalRetire = fvWork * Math.pow(1 + retRate, phase1Years) + (phase1Years > 0 ? retireAnnualNet * (Math.pow(1 + retRate, phase1Years) - 1) / retRate : 0);
+
+  // 折现回"今天"：所有未来的钱折算成今天的购买力
+  var netAtPlanRetire = Math.max(0, Math.round(fvWork   * Math.pow(1 + inflRate, -yearsToPlan) * 100) / 100);
+  var netAtLegalRetire = Math.max(0, Math.round(fvAtLegalRetire * Math.pow(1 + inflRate, -yearsToLegal) * 100) / 100);
+
+  // 10年后净值（统一折算逻辑）
+  var years10 = Math.min(10, yearsToLegal);
+  var fv10 = netAsset * Math.pow(1 + retRate, years10);
+  if (years10 > yearsToPlan) {
+    // 跨越了计划退休节点
+    fv10 = fvWork * Math.pow(1 + retRate, years10 - yearsToPlan);
+    fv10 += (years10 - yearsToPlan) > 0 ? retireAnnualNet * (Math.pow(1 + retRate, years10 - yearsToPlan) - 1) / retRate : 0;
+  }
+  var net10 = Math.max(0, Math.round(fv10 * Math.pow(1 + inflRate, -years10) * 100) / 100);
+
+  // 阶段一（法定退休前的无养老金期）的累计净变化
   var isEarlyRetire = planRetireAge < legalRetireAge - 0.5;
-  var phase1Years = isEarlyRetire ? (legalRetireAge - planRetireAge) : 0;
-  // 阶段一：月净消耗 = 退休后月支出 - 退休后月收入（正值=消耗，负值=积累）
-  var phase1MonthlyNet = retireExpW - retireIncome; // 单位：万/月
-  // 折现率 = 年通胀率，2%每年
-  var inflRate = 0.02;
-  // 阶段一累计净变化（不加折现，直接累加）
-  var phase1NetChange = phase1MonthlyNet * 12 * phase1Years;
-  // 阶段一结束时净资产 = 净资产积累 + 阶段一净变化
-  var netAtLegalRetire = Math.max(0, Math.round((netAtPlanRetire + phase1NetChange)*100)/100);
+  var phase1MonthlyNet = retireMonthlyNet;  // 展示用别名
+  var phase1NetChange = retireMonthlyNet * 12 * phase1Years;
 
   // ===== 阶段二：社保养老金 =====
   var totalInsYears = Math.min(insYears + Math.max(0, legalRetireAge - age), 40);
