@@ -135,6 +135,13 @@
     .formula-result .f-val.danger { color: var(--rose); }
     .formula-result .f-val.good { color: var(--green); }
     .formula-note { font-size: 10px; color: var(--text-muted); margin-top: 4px; font-style: italic; }
+    .scene-card { background: linear-gradient(160deg,#fcfdfe 0%,#f0f6fc 100%); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+    .scene-title { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px; }
+    .scene-items { display: flex; flex-direction: column; gap: 10px; }
+    .scene-item { display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.7); border-radius: 12px; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.8); }
+    .scene-emoji { font-size: 18px; }
+    .scene-text { font-size: 13px; color: var(--text); }
+    .scene-sub { font-size: 11px; color: var(--text-muted); }
     .pension-query-guide { margin-top: 10px; }
     .guide-toggle { width: 100%; background: linear-gradient(135deg,#f5f8fb,#edf3f8); border: 1px solid #d0e4f4; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: var(--accent-dark); cursor: pointer; text-align: left; font-weight: 500; transition: background 0.2s; }
     .guide-toggle:hover { background: linear-gradient(135deg,#edf3f8,#dce9f4); }
@@ -536,6 +543,16 @@
         </div>
         <div class="formula-note">* 个人账户储存额 = 年实缴额 × [(1+r)^n - 1] / r（r=2.5%年复利，n=缴费年限）</div>
         <div class="formula-note">* 缴费指数 = 实际月缴费基数 ÷ 当年社平工资（上限3.0）</div>
+
+        <div class="scene-card">
+          <div class="scene-title">退休后的生活，可以是这样的</div>
+          <div class="scene-items" id="sceneItems">
+            <div class="scene-item"><span class="scene-emoji">☕</span><div><div class="scene-text">每天睡到自然醒</div><div class="scene-sub">再也不用定闹钟了</div></div></div>
+            <div class="scene-item"><span class="scene-emoji">🌿</span><div><div class="scene-text">在喜欢的地方住下</div><div class="scene-sub">想去哪儿就去哪儿</div></div></div>
+            <div class="scene-item"><span class="scene-emoji">📚</span><div><div class="scene-text">终于有大把时间读书</div><div class="scene-sub">书架上那些落灰的书可以看了</div></div></div>
+            <div class="scene-item"><span class="scene-emoji">🎨</span><div><div class="scene-text">学点感兴趣的事</div><div class="scene-sub">书法、绘画、音乐……年轻时没时间的那些</div></div></div>
+          </div>
+        </div>
     </div>
   </div>
 </div>
@@ -850,8 +867,6 @@ function calc() {
   fGapResult.textContent = '= '+(gapYuanLegal>=0?gapYuanLegal.toFixed(0)+'元/月':Math.abs(gapYuanLegal).toFixed(0)+'元/月（富余）');
 
 }
-
-function calculate() {
 
 function calculate() {
   if (window.innerWidth < 900) document.getElementById('resultsPanel').scrollIntoView({behavior:'smooth'});
