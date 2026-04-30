@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>退休养老规划计算器</title>
+  <style>
+    :root {
+      --bg: #f9f8f5; --bg-warm: #f5f1ec; --bg-card: #ffffff; --bg-input: #f9f8f6;
+      --border: #e0dbd5; --text: #3d3a35; --text-secondary: #7d7469; --text-muted: #b0a89e;
+      --accent: #7ba3c9; --accent-dark: #5b89b5; --accent-light: #a8c4de;
+      --green: #7eb88a; --green-light: #b0d4b8;
+      --amber: #c9a87a; --amber-light: #e8cfb0;
+      --rose: #c98a8a; --rose-light: #e8b0b0;
+      --radius: 20px; --shadow: 0 4px 24px rgba(61,58,53,0.06); --shadow-hover: 0 8px 40px rgba(61,58,53,0.1);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.7; overflow-x: hidden; }
+    .hero { position: relative; padding: 56px 40px 48px; background: linear-gradient(160deg, #fdfcfa 0%, #f5f9fc 40%, #eef5fa 100%); overflow: hidden; }
+    .hero::before { content: ''; position: absolute; bottom: -60px; right: -80px; width: 500px; height: 500px; background: radial-gradient(circle, rgba(123,163,201,0.1) 0%, transparent 65%); pointer-events: none; }
+    .hero-eyebrow { font-size: 12px; letter-spacing: 3px; color: var(--accent-dark); text-transform: uppercase; margin-bottom: 10px; font-weight: 500; }
+    .hero h1 { font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif, serif; font-size: 36px; font-weight: 400; color: var(--text); letter-spacing: 2px; margin-bottom: 10px; }
+    .hero p { font-size: 14px; color: var(--text-secondary); font-weight: 300; max-width: 440px; }
+    .hero-divider { display: flex; align-items: center; gap: 12px; margin-top: 28px; }
+    .hero-divider span { width: 32px; height: 1px; background: var(--accent-light); }
+    .hero-divider p { font-size: 12px; color: var(--text-muted); font-style: italic; letter-spacing: 1px; }
+    .layout { display: grid; grid-template-columns: 440px 1fr; gap: 32px; padding: 32px 40px 60px; max-width: 1240px; }
+    .form-panel { background: var(--bg-card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 28px; height: fit-content; position: sticky; top: 24px; max-height: calc(100vh - 48px); overflow-y: auto; }
+    .panel-header { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+    .panel-header h2 { font-size: 14px; font-weight: 500; color: var(--text); letter-spacing: 1px; }
+    .panel-header .line { flex: 1; height: 1px; background: var(--border); }
+    .form-section { margin-bottom: 20px; }
+    .section-title { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .field { margin-bottom: 8px; }
+    .field label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 400; }
+    .field .hint { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+    .field input, .field select { width: 100%; background: var(--bg-input); border: 1.5px solid var(--border); border-radius: 10px; padding: 8px 12px; color: var(--text); font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif, sans-serif; font-size: 13px; transition: all 0.2s; outline: none; -webkit-appearance: none; }
+    .field input:focus, .field select:focus { border-color: var(--accent-light); background: #fff; box-shadow: 0 0 0 3px rgba(168,196,222,0.25); }
+    .field input::placeholder { color: var(--text-muted); font-size: 12px; }
+    .field input:disabled { opacity: 0.45; cursor: not-allowed; }
+    .field select { cursor: pointer; }
+    .field select option { background: var(--bg-card); }
+    .radio-pills { display: flex; gap: 5px; }
+    .radio-pills label { flex: 1; display: flex; align-items: center; justify-content: center; padding: 6px 4px; border-radius: 20px; border: 1.5px solid var(--border); background: var(--bg-input); font-size: 12px; color: var(--text-secondary); cursor: pointer; transition: all 0.2s; user-select: none; }
+    .radio-pills label:has(input:checked) { border-color: var(--accent); background: rgba(123,163,201,0.1); color: var(--accent-dark); }
+    .radio-pills input { display: none; }
+    .calc-btn { width: 100%; padding: 13px; background: linear-gradient(135deg, var(--accent-dark) 0%, var(--accent) 100%); color: white; border: none; border-radius: 30px; font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif, sans-serif; font-size: 14px; font-weight: 500; letter-spacing: 2px; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 16px rgba(91,137,181,0.3); margin-top: 4px; }
+    .calc-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(91,137,181,0.4); }
+    .results-panel { display: flex; flex-direction: column; gap: 16px; }
+    .placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 40px; text-align: center; background: var(--bg-card); border-radius: var(--radius); box-shadow: var(--shadow); }
+    .placeholder svg { margin-bottom: 24px; opacity: 0.7; }
+    .placeholder p { font-size: 14px; color: var(--text-muted); font-weight: 300; line-height: 1.8; }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+    .cards-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+    .result-card { background: var(--bg-card); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); animation: slideUp 0.5s ease both; transition: transform 0.2s, box-shadow 0.2s; }
+    .result-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+    .result-card:nth-child(2) { animation-delay: 0.07s; }
+    .result-card:nth-child(3) { animation-delay: 0.14s; }
+    .result-card:nth-child(4) { animation-delay: 0.21s; }
+    .card-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
+    .card-value { font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif, serif; font-size: 24px; color: var(--text); line-height: 1.1; margin-bottom: 3px; }
+    .card-value .unit { font-size: 13px; color: var(--text-secondary); }
+    .card-note { font-size: 10px; color: var(--text-muted); }
+    .net-card { grid-column: 1/-1; background: linear-gradient(135deg,#fcfdfe,#f5f9fc); border: 1px solid #dde8f0; border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); animation: slideUp 0.5s ease 0.25s both; }
+    .net-bars { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+    .net-bar-row { display: flex; align-items: center; gap: 10px; }
+    .net-bar-label { font-size: 11px; color: var(--text-secondary); width: 60px; flex-shrink: 0; }
+    .net-bar-track { flex: 1; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .net-bar-fill { height: 100%; border-radius: 3px; transition: width 1s cubic-bezier(0.16,1,0.3,1); }
+    .net-bar-fill:nth-child(1) { background: linear-gradient(90deg,var(--green-light),var(--green)); }
+    .net-bar-fill:nth-child(2) { background: linear-gradient(90deg,var(--accent-light),var(--accent)); }
+    .net-bar-fill:nth-child(3) { background: linear-gradient(90deg,var(--amber-light),var(--amber)); }
+    .net-bar-val { font-size: 11px; color: var(--text); font-weight: 500; width: 52px; text-align: right; }
+    .phase-divider { display: flex; align-items: center; gap: 12px; margin: 4px 0; animation: slideUp 0.5s ease 0.3s both; }
+    .phase-divider-label { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); white-space: nowrap; }
+    .phase-divider-line { flex: 1; height: 1px; background: var(--border); }
+    .phase-self { background: linear-gradient(135deg,#fef8f5,#fdf2ec); border: 1px solid #f0e4d8; border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); animation: slideUp 0.5s ease 0.35s both; position: relative; overflow: hidden; }
+    .phase-self::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg,var(--rose),var(--rose-light)); }
+    .phase-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .phase-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; letter-spacing: 1px; }
+    .phase-badge.danger { background: rgba(201,138,138,0.15); color: var(--rose); border: 1px solid rgba(201,138,138,0.3); }
+    .phase-badge.safe { background: rgba(126,184,138,0.15); color: var(--green); border: 1px solid rgba(126,184,138,0.3); }
+    .phase-title { font-size: 13px; font-weight: 500; color: var(--text); flex: 1; }
+    .phase-meta { font-size: 11px; color: var(--text-muted); background: var(--bg-input); padding: 3px 10px; border-radius: 12px; }
+    .phase-stat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 12px; }
+    .phase-stat { background: rgba(255,255,255,0.7); border-radius: 12px; padding: 12px; text-align: center; border: 1px solid rgba(255,255,255,0.8); }
+    .phase-stat-val { font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif, serif; font-size: 20px; color: var(--text); margin-bottom: 2px; }
+    .phase-stat-val .unit { font-size: 10px; color: var(--text-secondary); }
+    .phase-stat-label { font-size: 10px; color: var(--text-muted); }
+    .phase-stat.danger .phase-stat-val { color: var(--rose); }
+    .phase-stat.safe .phase-stat-val { color: var(--green); }
+    .phase-note { font-size: 11px; color: var(--text-secondary); line-height: 1.8; background: rgba(255,255,255,0.5); border-radius: 8px; padding: 10px 14px; border-left: 3px solid var(--rose); }
+    .phase-note.safe { border-left-color: var(--green); }
+    .phase-note strong { color: var(--text); font-weight: 500; }
+    .phase-note .warn { color: var(--rose); font-weight: 500; }
+    .phase-note .good { color: var(--green); font-weight: 500; }
+    .phase-legal { background: linear-gradient(135deg,#f5f9fc,#eef5fa); border: 1px solid #dde8f0; border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); animation: slideUp 0.5s ease 0.42s both; position: relative; overflow: hidden; }
+    .phase-legal::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg,var(--accent-dark),var(--accent-light)); }
+    .pension-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .pension-card { background: var(--bg-card); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+    .pension-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 3px 3px 0 0; }
+    .pension-card.primary::before { background: linear-gradient(90deg,var(--accent-dark),var(--accent)); }
+    .pension-card.third::before { background: linear-gradient(90deg,var(--green),var(--green-light)); }
+    .pension-card.annuity::before { background: linear-gradient(90deg,var(--amber),var(--amber-light)); }
+    .pension-card-title { font-size: 10px; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+    .pension-amount { font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif, serif; font-size: 22px; color: var(--text); margin-bottom: 3px; }
+    .pension-amount .unit { font-size: 12px; color: var(--text-muted); }
+    .pension-detail { font-size: 10px; color: var(--text-secondary); }
+    .pension-total-card { grid-column: 1/-1; background: linear-gradient(135deg,#f0f6fc,#e8f2fa); border: 1px solid #d0e4f4; border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); text-align: center; }
+    .pension-total-eyebrow { font-size: 11px; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px; }
+    .pension-total-value { font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif, serif; font-size: 36px; color: var(--accent-dark); line-height: 1; margin-bottom: 4px; }
+    .pension-total-value .unit { font-size: 16px; color: var(--text-secondary); }
+    .pension-total-note { font-size: 12px; color: var(--text-secondary); }
+    .pension-gap-row { display: flex; gap: 10px; align-items: stretch; margin-top: 12px; }
+    .pension-gap-card { flex: 1; border-radius: var(--radius); padding: 14px 16px; text-align: center; }
+    .pension-gap-card.rose { background: rgba(201,138,138,0.08); border: 1px solid rgba(201,138,138,0.2); }
+    .pension-gap-card.green { background: rgba(126,184,138,0.08); border: 1px solid rgba(126,184,138,0.2); }
+    .pension-gap-label { font-size: 10px; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+    .pension-gap-val { font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif, serif; font-size: 20px; }
+    .pension-gap-card.rose .pension-gap-val { color: var(--rose); }
+    .pension-gap-card.green .pension-gap-val { color: var(--green); }
+    .pension-gap-note { font-size: 10px; color: var(--text-secondary); }
+    .formula-section { background: linear-gradient(135deg,#fdfcfa,#f8f9fb); border: 1px solid #e0dbd5; border-radius: var(--radius); padding: 16px 20px; animation: slideUp 0.5s ease 0.5s both; }
+    .formula-title { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .formula-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .formula-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .formula-item { background: rgba(255,255,255,0.7); border-radius: 10px; padding: 12px 14px; border: 1px solid rgba(255,255,255,0.9); }
+    .formula-label { font-size: 10px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
+    .formula-text { font-size: 12px; color: var(--text-secondary); line-height: 1.8; }
+    .formula-text code { font-family: 'Courier New', monospace; background: rgba(91,137,181,0.08); padding: 1px 4px; border-radius: 3px; color: var(--accent-dark); font-size: 11px; }
+    .formula-result { font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif, serif; font-size: 16px; margin-top: 4px; }
+    .formula-result .f-label { font-size: 10px; color: var(--text-muted); font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif, sans-serif; }
+    .formula-result .f-val { font-size: 16px; font-weight: 500; color: var(--accent-dark); }
+    .formula-result .f-val.danger { color: var(--rose); }
+    .formula-result .f-val.good { color: var(--green); }
+    .formula-note { font-size: 10px; color: var(--text-muted); margin-top: 4px; font-style: italic; }
+    .scene-card { background: linear-gradient(135deg,#f0f6fc,#eef5fa); border-radius: var(--radius); padding: 20px 24px; box-shadow: var(--shadow); display: flex; align-items: center; gap: 40px; }
+    .scene-title { font-size: 12px; letter-spacing: 1px; color: var(--text-muted); white-space: nowrap; }
+    .scene-items { display: flex; flex-direction: column; gap: 10px; flex: 1; }
+    .scene-item { display: flex; align-items: center; gap: 10px; }
+    .scene-emoji { font-size: 16px; }
+    .scene-text { font-size: 13px; color: var(--text); }
+    .scene-sub { font-size: 11px; color: var(--text-muted); }
+    .pension-query-guide { margin-top: 10px; }
+    .guide-toggle { width: 100%; background: linear-gradient(135deg,#f5f8fb,#edf3f8); border: 1px solid #d0e4f4; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: var(--accent-dark); cursor: pointer; text-align: left; font-weight: 500; transition: background 0.2s; }
+    .guide-toggle:hover { background: linear-gradient(135deg,#edf3f8,#dce9f4); }
+    .guide-content { background: #f8fbfe; border: 1px solid #d0e4f4; border-top: none; border-radius: 0 0 8px 8px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+    .guide-step { font-size: 12px; line-height: 1.7; }
+    .guide-step strong { color: var(--accent-dark); display: block; margin-bottom: 4px; }
+    .guide-path { color: var(--text); padding-left: 8px; border-left: 2px solid #d0e4f4; margin: 4px 0; }
+    .guide-path u { color: var(--accent); }
+    .guide-tip { font-size: 11px; color: var(--text-secondary); padding-left: 8px; }
+    .guide-note { font-size: 11px; color: var(--text-muted); background: #f0f4f8; border-radius: 6px; padding: 8px 10px; line-height: 1.6; }
+    .retire-policy-note { background: #fef9f0; border: 1px solid #f0e4c0; border-radius: 8px; padding: 8px 12px; font-size: 10px; color: var(--amber); line-height: 1.6; margin-top: 4px; }
+    @media (max-width: 1000px) { .layout { grid-template-columns: 1fr; padding: 20px; gap: 20px; } .form-panel { position: static; max-height: none; } .cards-grid { grid-template-columns: 1fr 1fr; } .pension-grid { grid-template-columns: 1fr; } .phase-stat-grid { grid-template-columns: 1fr 1fr; } .formula-grid { grid-template-columns: 1fr; } .hero { padding: 40px 24px 36px; } .hero h1 { font-size: 28px; } }
+    @media (max-width: 520px) { .cards-grid { grid-template-columns: 1fr; } .field-row { grid-template-columns: 1fr; } .pension-gap-row { flex-direction: column; } }
+    #resultsPanel { display: none; }
+    #placeholder { display: flex; }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-eyebrow">财务规划</div>
+  <h1>退休养老规划计算器</h1>
+  <p>填下你的现状，看见未来生活的样子</p>
+  <div class="hero-divider"><span></span><p>从容不迫，是最好的退休礼物</p></div>
+</header>
+
+<div class="layout">
+  <div class="form-panel">
+    <div class="panel-header"><span style="font-size:20px">🌿</span><h2>填写你的现状</h2><div class="line"></div></div>
+
+    <div class="form-section">
+      <div class="section-title">🌸 基本信息</div>
+      <div class="field-row">
+        <div class="field">
+          <label>性别</label>
+          <div class="radio-pills">
+            <label><input type="radio" name="gender" value="male" checked onchange="onProfileChange()"> 男</label>
+            <label><input type="radio" name="gender" value="female" onchange="onProfileChange()"> 女</label>
+          </div>
+        </div>
+        <div class="field" id="identityField">
+          <label>退休身份</label>
+          <div class="radio-pills">
+            <label><input type="radio" name="identity" value=" cadre" checked> 干部</label>
+            <label><input type="radio" name="identity" value="worker"> 工人</label>
+          </div>
+          <div class="hint">影响女性法定退休年龄</div>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>当前年龄（岁）</label>
+          <input type="number" id="age" value="38" min="18" max="70">
+        </div>
+        <div class="field">
+          <label>所在城市</label>
+          <select id="city">
+            <option value="beijing" selected>北京</option>
+            <option value="shanghai">上海</option>
+            <option value="guangzhou">广州</option>
+            <option value="shenzhen">深圳</option>
+            <option value="hangzhou">杭州</option>
+            <option value="chengdu">成都</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-title">💰 收入（单位：万元）</div>
+      <div class="field-row">
+        <div class="field">
+          <label>当前月收入（到手）</label>
+          <input type="number" id="income" value="0" min="0" step="0.1">
+          <div class="hint">目前打工月薪，退休后归零</div>
+        </div>
+        <div class="field">
+          <label>退休后月收入</label>
+          <input type="number" id="retireIncome" value="0" min="0" step="0.1">
+          <div class="hint">如兼职、咨询费等，0=纯消耗</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-title">🏠 资产（单位：万元，①-⑥为消耗优先级）</div>
+      <div class="field-row">
+        <div class="field">
+          <label>① 银行存款</label>
+          <input type="number" id="savings" value="0" min="0" step="0.1">
+        </div>
+        <div class="field">
+          <label>② 股票/基金</label>
+          <input type="number" id="stocks" value="0" min="0" step="0.1">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>③ 个人养老金账户</label>
+          <input type="number" id="pension3" value="0" min="0" step="0.1">
+          <div class="hint">第三支柱，法定退休后领取</div>
+        </div>
+        <div class="field">
+          <label>④ 商业保险已缴总额</label>
+          <input type="number" id="insurance" value="0" min="0" step="0.1">
+          <div class="hint">非年金险，估算折现70%</div>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>⑤ 汽车估值</label>
+          <input type="number" id="carValue" value="0" min="0" step="0.1">
+        </div>
+        <div class="field">
+          <label>购入年份</label>
+          <input type="number" id="carYear" value="2022" min="1990" max="2026">
+        </div>
+      </div>
+      <div class="field">
+        <label>⑥ 房产估值</label>
+        <input type="number" id="property" value="0" min="0" step="1">
+        <div class="hint">最后处置，考虑流动性折价</div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>年金险每年领取</label>
+          <input type="number" id="annuityAmt" value="0" min="0" step="0.1">
+          <div class="hint">单位万元/年，0=无年金险</div>
+        </div>
+        <div class="field">
+          <label>年金险开始领年龄</label>
+          <input type="number" id="annuityStart" value="60" min="50" max="80">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-title">📋 负债（单位：万元）</div>
+      <div class="field-row">
+        <div class="field">
+          <label>房贷剩余</label>
+          <input type="number" id="mortgage" value="0" min="0" step="0.1">
+        </div>
+        <div class="field">
+          <label>其他贷款</label>
+          <input type="number" id="otherLoan" value="0" min="0" step="0.1">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-title">💸 支出（单位：万元/月）</div>
+      <div class="field-row">
+        <div class="field">
+          <label>月固定支出</label>
+          <input type="number" id="fixedExp" value="0" min="0" step="0.1">
+        </div>
+        <div class="field">
+          <label>月弹性支出</label>
+          <input type="number" id="flexExp" value="0" min="0" step="0.1">
+        </div>
+      </div>
+      <div class="field">
+        <label>退休后期望月支出</label>
+        <input type="number" id="retireExp" value="0" min="0" step="0.1">
+        <div class="hint">退休后实际需要的月支出</div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-title">🌱 社保</div>
+      <div class="field-row">
+        <div class="field">
+          <label>已缴社保年限（年）</label>
+          <input type="number" id="insuranceYears" value="0" min="0" max="40" step="0.5">
+        </div>
+        <div class="field">
+          <label>平均月缴费基数</label>
+          <input type="number" id="avgBaseW" value="0" min="0.6821" step="0.01">
+          <div class="hint">单位万元（北京社平约1.3万）</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>已知月养老金（直接填写，忽略估算）</label>
+        <input type="number" id="knownPension" value="0" min="0" step="0.01">
+        <div class="hint">如有，优先使用此数值，单位万元/月</div>
+      </div>
+
+      <div class="pension-query-guide">
+        <button class="guide-toggle" onclick="toggleQueryGuide()">🔍 如何查询个人账户养老金？</button>
+        <div class="guide-content" id="queryGuideContent" style="display:none;">
+          <div class="guide-step">
+            <strong>方法一：国家社会保险公共服务平台（推荐）</strong>
+            <div class="guide-path">电脑浏览器 → <u>si.12333.gov.cn</u> → 登录 → 「社保」→ 「养老保险」→ 「个人权益记录单」</div>
+            <div class="guide-tip">可查看：个人账户累计储存额、历年缴费基数、实际缴费年限</div>
+          </div>
+          <div class="guide-step">
+            <strong>方法二：支付宝 / 微信（快速查询）</strong>
+            <div class="guide-path">支付宝首页搜索「社保」→ 「社保查询」→ 「基本养老保险」<br>
+            微信「我」→「服务」→「城市服务」→「社保」→ 「养老金计算器」或「个人账户查询」</div>
+            <div class="guide-tip">可查看：账户余额、缴费月数、部分城市支持预估月领金额</div>
+          </div>
+          <div class="guide-step">
+            <strong>方法三：拨打12333</strong>
+            <div class="guide-path">按语音提示转「人工客服」，说明查询「养老保险个人账户储存额」，客服可告知当前余额及缴费记录</div>
+          </div>
+          <div class="guide-note">⚠️ 此处填入月养老金估算值仅供参考；如有条件查询实缴记录，建议优先使用实查数据</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-title">🎯 退休规划</div>
+      <div class="field-row">
+        <div class="field">
+          <label>法定退休年龄（岁）</label>
+          <input type="number" id="legalRetireAge" value="58" min="50" max="65" step="0.5">
+          <div class="retire-policy-note">
+            ⚠️ 2025年渐进式延迟退休：男延3月/年、女工延3月/年、女干延6月/年。<br>
+            请以当地社保局测算为准，或咨询单位HR。
+          </div>
+        </div>
+        <div class="field">
+          <label>计划退休年龄（岁）</label>
+          <input type="number" id="planRetireAge" value="58" min="40" max="70" step="1">
+          <div class="hint">可与法定年龄不同</div>
+        </div>
+      </div>
+    </div>
+
+    <button class="calc-btn" onclick="calculate()">✨ 看看我的退休生活</button>
+  </div>
+
+  <div class="results-panel">
+    <div class="placeholder" id="placeholder">
+    </div>
+
+    <div id="resultsPanel">
+      <div class="scene-card">
+        <div class="scene-title">退休后的生活，可以是这样的</div>
+        <div class="scene-items" id="sceneItems">
+          <div class="scene-item"><span class="scene-emoji">☕</span><div><div class="scene-text">每天睡到自然醒</div><div class="scene-sub">再也不用定闹钟了</div></div></div>
+          <div class="scene-item"><span class="scene-emoji">🌿</span><div><div class="scene-text">在喜欢的地方住下</div><div class="scene-sub">想去哪儿就去哪儿</div></div></div>
+          <div class="scene-item"><span class="scene-emoji">📚</span><div><div class="scene-text">终于有大把时间读书</div><div class="scene-sub">书架上那些落灰的书可以看了</div></div></div>
+          <div class="scene-item"><span class="scene-emoji">🎨</span><div><div class="scene-text">学点感兴趣的事</div><div class="scene-sub">书法、绘画、音乐……年轻时没时间的那些</div></div></div>
+        </div>
+      </div>
+
+      <div class="cards-grid">
+        <div class="result-card">
+          <div class="card-label">⏳ 流动资产支撑</div>
+          <div class="card-value" id="survivalMonth">—<span class="unit">个月</span></div>
+          <div class="card-note" id="survivalNote">极端零收入情况</div>
+        </div>
+        <div class="result-card">
+          <div class="card-label">🌿 总净资产</div>
+          <div class="card-value" id="totalNet">—<span class="unit">万</span></div>
+          <div class="card-note">①存 ②股 ③个账 ④保 ⑤车 ⑥房</div>
+        </div>
+        <div class="result-card">
+          <div class="card-label">📅 计划退休</div>
+          <div class="card-value" id="planRetire">—<span class="unit">岁</span></div>
+          <div class="card-note" id="retireType"></div>
+        </div>
+        <div class="result-card">
+          <div class="card-label">⚖️ 法定退休</div>
+          <div class="card-value" id="legalRetire">—<span class="unit">岁</span></div>
+          <div class="card-note">社保养老金起始</div>
+        </div>
+      </div>
+
+      <div class="net-card">
+        <div class="card-label">净资产增长预测</div>
+        <div class="net-bars">
+          <div class="net-bar-row">
+            <div class="net-bar-label">现在</div>
+            <div class="net-bar-track"><div class="net-bar-fill" id="barNow" style="width:0%"></div></div>
+            <div class="net-bar-val" id="valNow">—万</div>
+          </div>
+          <div class="net-bar-row">
+            <div class="net-bar-label">计划退休时</div>
+            <div class="net-bar-track"><div class="net-bar-fill" id="barRetire" style="width:0%"></div></div>
+            <div class="net-bar-val" id="valRetire">—万</div>
+          </div>
+          <div class="net-bar-row">
+            <div class="net-bar-label">10年后</div>
+            <div class="net-bar-track"><div class="net-bar-fill" id="bar10y" style="width:0%"></div></div>
+            <div class="net-bar-val" id="val10y">—万</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="phase-divider">
+        <div class="phase-divider-line"></div>
+        <div class="phase-divider-label">⬛ 第一阶段：主动退休期（无社保养老金）</div>
+        <div class="phase-divider-line"></div>
+      </div>
+
+      <div class="phase-self" id="phaseSelf">
+        <div class="phase-header">
+          <span class="phase-title" id="phaseSelfTitle">主动退休期</span>
+          <span class="phase-badge danger" id="phaseSelfBadge"><span id="phaseSelfBadgeIcon">🔥</span><span id="phaseSelfBadgeText">高压力</span></span>
+          <span class="phase-meta" id="phaseSelfMeta">58 → 58岁</span>
+        </div>
+        <div class="phase-stat-grid">
+          <div class="phase-stat">
+            <div class="phase-stat-val" id="phaseSelfYearsVal">—<span class="unit">年</span></div>
+            <div class="phase-stat-label">持续时长</div>
+          </div>
+          <div class="phase-stat">
+            <div class="phase-stat-val" id="phaseSelfIncomeVal">0<span class="unit">万/月</span></div>
+            <div class="phase-stat-label">月收入（退休后）</div>
+          </div>
+          <div class="phase-stat">
+            <div class="phase-stat-val" id="phaseSelfExpenseVal">—<span class="unit">万/月</span></div>
+            <div class="phase-stat-label">月支出（退休后期望）</div>
+          </div>
+          <div class="phase-stat" id="phaseSelfNet">
+            <div class="phase-stat-val" id="phaseSelfNetVal">—<span class="unit">万</span></div>
+            <div class="phase-stat-label">净资产变化</div>
+          </div>
+        </div>
+        <div class="phase-note" id="phaseSelfNote"></div>
+      </div>
+
+      <div class="phase-divider">
+        <div class="phase-divider-line"></div>
+        <div class="phase-divider-label">🔵 第二阶段：法定退休期（有社保养老金）</div>
+        <div class="phase-divider-line"></div>
+      </div>
+
+      <div class="phase-legal">
+        <div class="phase-header" style="margin-bottom:14px">
+          <span class="phase-title">法定退休期</span>
+          <span class="phase-badge safe"><span>🛡️</span><span>社保养老金</span></span>
+          <span class="phase-meta" id="phaseLegalMeta">58岁起</span>
+        </div>
+        <div class="pension-grid">
+          <div class="pension-card primary">
+            <div class="pension-card-title">城镇职工基本养老保险</div>
+            <div class="pension-amount" id="pensionBase">—<span class="unit">元/月</span></div>
+            <div class="pension-detail" id="pensionBaseNote">基础养老金 + 个人账户</div>
+          </div>
+          <div class="pension-card third" id="p3Card" style="display:none;">
+            <div class="pension-card-title">个人养老金（第三支柱）</div>
+            <div class="pension-amount" id="pension3Amt">—<span class="unit">元/月</span></div>
+            <div class="pension-detail">年化约4%，领取收3%税</div>
+          </div>
+          <div class="pension-card annuity" id="annuityCard" style="display:none;">
+            <div class="pension-card-title">年金保险</div>
+            <div class="pension-amount" id="annuityDisplay">—<span class="unit">元/月</span></div>
+            <div class="pension-detail" id="annuityNote"></div>
+          </div>
+          <div class="pension-total-card">
+            <div class="pension-total-eyebrow">法定退休后每月合计</div>
+            <div class="pension-total-value" id="pensionTotal">—<span class="unit">元</span></div>
+            <div class="pension-total-note" id="pensionNote"></div>
+          </div>
+        </div>
+        <div class="pension-gap-row">
+          <div class="pension-gap-card" id="gapCard1">
+            <div class="pension-gap-label">月养老金</div>
+            <div class="pension-gap-val" id="gap1Val">—</div>
+            <div class="pension-gap-note" id="gap1Note">退休后收入</div>
+          </div>
+          <div class="pension-gap-card" id="gapCard2">
+            <div class="pension-gap-label" id="gap2Label">每月缺口</div>
+            <div class="pension-gap-val" id="gap2Val">—</div>
+            <div class="pension-gap-note" id="gap2Note">需动用资产</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="formula-section">
+        <div class="formula-title">📐 计算过程</div>
+        <div class="formula-grid">
+          <div class="formula-item">
+            <div class="formula-label">① 基础养老金</div>
+            <div class="formula-text"><code>社平×(1+缴费指数)÷2×缴费年限×1%</code></div>
+            <div class="formula-result"><span class="f-label" id="fBaseFormula"></span> <span class="f-val" id="fBaseResult"></span></div>
+          </div>
+          <div class="formula-item">
+            <div class="formula-label">② 个人账户月养老金</div>
+            <div class="formula-text"><code>账户储存额 ÷ 计发月数</code></div>
+            <div class="formula-result"><span class="f-label" id="fPersonalFormula"></span> <span class="f-val" id="fPersonalResult"></span></div>
+          </div>
+          <div class="formula-item">
+            <div class="formula-label">③ 阶段一累计净变化</div>
+            <div class="formula-text"><code>月净消耗 × 12个月 × 年数</code></div>
+            <div class="formula-result"><span class="f-label" id="fPhase1Formula"></span> <span class="f-val" id="fPhase1Result"></span></div>
+          </div>
+          <div class="formula-item">
+            <div class="formula-label">④ 阶段二养老金缺口</div>
+            <div class="formula-text"><code>月支出 - 月养老金合计</code></div>
+            <div class="formula-result"><span class="f-label" id="fGapFormula"></span> <span class="f-val" id="fGapResult"></span></div>
+          </div>
+        </div>
+        <div class="formula-note">* 个人账户储存额 = 年实缴额 × [(1+r)^n - 1] / r（r=2.5%年复利，n=缴费年限）</div>
+        <div class="formula-note">* 缴费指数 = 实际月缴费基数 ÷ 当年社平工资（上限3.0）</div>
+    </div>
+  </div>
+</div>
+
+<script>
+var cityAvg = {
+  beijing: 13000, shanghai: 12800, guangzhou: 11000,
+  shenzhen: 13000, hangzhou: 11000, chengdu: 9000
+};
+
+function onProfileChange() {
+  toggleIdentity();
+  var g = document.querySelector('input[name="gender"]:checked').value;
+  var id = document.querySelector('input[name="identity"]:checked').value.trim();
+  var sug = g === 'male' ? 60 : (id === 'worker' ? 50 : 55);
+  document.getElementById('legalRetireAge').value = sug;
+  document.getElementById('planRetireAge').value = sug;
+}
+
+function toggleQueryGuide() {
+  var el = document.getElementById('queryGuideContent');
+  el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+}
+
+function toggleIdentity() {
+  var g = document.querySelector('input[name="gender"]:checked').value;
+  var f = document.getElementById('identityField');
+  var inputs = f.querySelectorAll('input');
+  if (g === 'male') {
+    f.style.opacity = '0.4';
+    inputs.forEach(function(i){ i.disabled = true; });
+  } else {
+    f.style.opacity = '1';
+    inputs.forEach(function(i){ i.disabled = false; });
+  }
+}
+
+function carVal(cur, yr) {
+  var yrs = new Date().getFullYear() - yr;
+  if (yrs <= 0) return cur;
+  var r = 2/15, v = cur;
+  for (var i=0; i<yrs; i++) v = Math.max(v - v*r, cur*0.15);
+  return Math.round(v*100)/100;
+}
+
+function getPensionMonths(ra) {
+  var m = {50:195,51:190,52:185,53:180,54:175,55:170,56:164,57:158,58:152,59:145,60:139,61:132,62:125,63:117,64:109,65:101};
+  var b = Math.floor(ra);
+  if (m[b] !== undefined) return m[b];
+  var lo=50, hi=65;
+  while(lo<hi&&m[lo]===undefined) lo++;
+  while(hi>lo&&m[hi]===undefined) hi--;
+  return m[hi] !== undefined ? Math.round(m[lo]-(m[lo]-m[hi])*((ra-lo)/(hi-lo))) : 139;
+}
+
+function calc() {
+  var gender = document.querySelector('input[name="gender"]:checked').value;
+  var identity = document.querySelector('input[name="identity"]:checked').value.trim();
+  var age = parseInt(document.getElementById('age').value) || 38;
+  var city = document.getElementById('city').value;
+  var income = parseFloat(document.getElementById('income').value) || 0;
+  var retireIncome = parseFloat(document.getElementById('retireIncome').value) || 0;
+  var savings = parseFloat(document.getElementById('savings').value) || 0;
+  var stocks = parseFloat(document.getElementById('stocks').value) || 0;
+  var pension3 = parseFloat(document.getElementById('pension3').value) || 0;
+  var annuityAmtYrW = parseFloat(document.getElementById('annuityAmt').value) || 0;
+  var annuityStart = parseInt(document.getElementById('annuityStart').value) || 60;
+  var insurance = parseFloat(document.getElementById('insurance').value) || 0;
+  var carV = parseFloat(document.getElementById('carValue').value) || 0;
+  var carYr = parseInt(document.getElementById('carYear').value) || 2022;
+  var property = parseFloat(document.getElementById('property').value) || 0;
+  var mortgage = parseFloat(document.getElementById('mortgage').value) || 0;
+  var otherLoan = parseFloat(document.getElementById('otherLoan').value) || 0;
+  var fixedExp = parseFloat(document.getElementById('fixedExp').value) || 0;
+  var flexExp = parseFloat(document.getElementById('flexExp').value) || 0;
+  var retireExpW = parseFloat(document.getElementById('retireExp').value) || 1;
+  var insYears = parseFloat(document.getElementById('insuranceYears').value) || 0;
+  var avgBaseW = parseFloat(document.getElementById('avgBaseW').value) || 1.5;
+  var legalRetireAge = parseFloat(document.getElementById('legalRetireAge').value) || 58;
+  var planRetireAge = parseInt(document.getElementById('planRetireAge').value) || legalRetireAge;
+  var knownPensionYuan = (parseFloat(document.getElementById('knownPension').value) || 0) * 10000;
+
+  var avgSalary = cityAvg[city] || 13000;
+  var avgBase = avgBaseW * 10000;
+  var carNet = carVal(carV, carYr);
+  // 总净资产（含房产车辆等非流动资产）
+  var netAsset = savings + stocks + pension3 + insurance*0.7 + carNet + property - mortgage - otherLoan;
+  // 流动资产（可立即动用的钱，不含房产、车辆）
+  var liquidAsset = savings + stocks + pension3 + insurance*0.7;
+  var currentMonthlyExp = fixedExp + flexExp;
+  var survival = currentMonthlyExp > 0 ? Math.round(liquidAsset / currentMonthlyExp) : 999;
+
+  var inflRate = 0.02;    // 通胀率：用于折算"今天的购买力"
+  var retRate  = 0.05;    // 投资回报率：资产在退休前的年化增值（保守5%，可调整）
+
+  var yearsToPlan = Math.max(0, planRetireAge - age);      // 距计划退休还有几年
+  var yearsToLegal = Math.max(0, legalRetireAge - age);    // 距法定退休还有几年
+
+  var monthlyCurrentNet = income - currentMonthlyExp;       // 月净结余（工作期），单位：万/月
+
+  // ===== 分段净值计算 =====
+  // 阶段A：从现在到计划退休——仍在工作，月净结余累加
+  var workYears = yearsToPlan;
+  var workNet = monthlyCurrentNet * 12;  // 年净结余（万/年）
+  // FV = PV*(1+r)^n + PMT*((1+r)^n-1)/r
+  var fvWork = netAsset * Math.pow(1 + retRate, workYears) + (workYears > 0 ? workNet * (Math.pow(1 + retRate, workYears) - 1) / retRate : 0);
+
+  // 阶段B：从计划退休到法定退休——无工资，用retireIncome扛支出
+  var phase1Years = Math.max(0, legalRetireAge - planRetireAge);
+  var retireMonthlyNet = retireExpW - retireIncome;  // 退休期月净消耗（万/月），正值=消耗
+  var retireAnnualNet = retireMonthlyNet * 12;        // 退休期年净变化（万/年），正值=减少
+  // 此阶段资产持续消耗（按retRate增值/减值）
+  var fvAtLegalRetire = fvWork * Math.pow(1 + retRate, phase1Years) + (phase1Years > 0 ? retireAnnualNet * (Math.pow(1 + retRate, phase1Years) - 1) / retRate : 0);
+
+  // 折现回"今天"：所有未来的钱折算成今天的购买力
+  var netAtPlanRetire = Math.max(0, Math.round(fvWork   * Math.pow(1 + inflRate, -yearsToPlan) * 100) / 100);
+  var netAtLegalRetire = Math.max(0, Math.round(fvAtLegalRetire * Math.pow(1 + inflRate, -yearsToLegal) * 100) / 100);
+
+  // 10年后净值（统一折算逻辑）
+  var years10 = Math.min(10, yearsToLegal);
+  var fv10 = netAsset * Math.pow(1 + retRate, years10);
+  if (years10 > yearsToPlan) {
+    // 跨越了计划退休节点
+    fv10 = fvWork * Math.pow(1 + retRate, years10 - yearsToPlan);
+    fv10 += (years10 - yearsToPlan) > 0 ? retireAnnualNet * (Math.pow(1 + retRate, years10 - yearsToPlan) - 1) / retRate : 0;
+  }
+  var net10 = Math.max(0, Math.round(fv10 * Math.pow(1 + inflRate, -years10) * 100) / 100);
+
+  // 阶段一（法定退休前的无养老金期）的累计净变化
+  var isEarlyRetire = planRetireAge < legalRetireAge - 0.5;
+  var phase1MonthlyNet = retireMonthlyNet;  // 展示用别名
+  var phase1NetChange = retireMonthlyNet * 12 * phase1Years;
+
+  // ===== 阶段二：社保养老金 =====
+  var totalInsYears = Math.min(insYears + Math.max(0, legalRetireAge - age), 40);
+  var contribIdx = Math.min(Math.max(avgBase / avgSalary, 0.6), 3);
+
+  // 基础养老金（元/月）：缴费年限用实际值，无上限
+  // 公式：社平工资 × (1+缴费指数) / 2 × 缴费年限 × 1%
+  // 15年仅为最低领取门槛，非封顶值
+  var basePension = Math.round(avgSalary * (1 + contribIdx) / 2 * totalInsYears * 0.01);
+
+  // 个人账户储存额估算（元）：按复利公式计算历年利息
+  // 历年记账利率：2005年前较高（~12%）、2005-2016波动、2016年后统一公布利率（约1.5%-3%）
+  // 此处保守取 2.5% 复利估算；用户有实际余额可填"已知月养老金"
+  var annualContrib = avgBase * 0.08 * 12;
+  var acctRate = 0.025; // 个人账户年利率（可调）
+  var personalAcctEst = totalInsYears > 0
+    ? annualContrib * (Math.pow(1 + acctRate, totalInsYears) - 1) / acctRate
+    : 0;
+  var monthsLegal = getPensionMonths(legalRetireAge);
+  var personalPensionMonthly = Math.round(personalAcctEst / monthsLegal);
+
+  // 用已知养老金替换估算
+  var pension1Yuan = knownPensionYuan > 0 ? knownPensionYuan : basePension + personalPensionMonthly;
+  var pension1W = pension1Yuan / 10000;
+
+  // 第三支柱
+  var p3Monthly = pension3 > 0
+    ? Math.round((pension3*10000 * Math.pow(1.04, Math.max(yearsToPlan,1))) / monthsLegal * 0.97)
+    : 0;
+
+  // 年金险
+  var annuityLegalStart = Math.max(planRetireAge, annuityStart);
+  var annuityAmtMonthlyW = annuityAmtYrW > 0 && annuityLegalStart <= legalRetireAge + 5 ? (annuityAmtYrW/12) : 0;
+
+  var totalPensionYuan = pension1Yuan + p3Monthly + (annuityAmtMonthlyW*10000);
+  var totalPensionW = totalPensionYuan / 10000;
+  var retireExpYuan = retireExpW * 10000;
+  var gapYuanLegal = retireExpYuan - totalPensionYuan;
+
+  // ===== 展示 =====
+  document.getElementById('placeholder').style.display = 'none';
+  document.getElementById('resultsPanel').style.display = 'block';
+
+  document.getElementById('survivalMonth').innerHTML = survival>=999?'∞<span class="unit">个月</span>':survival+'<span class="unit">个月</span>';
+  document.getElementById('survivalNote').textContent = '流动资产约'+liquidAsset.toFixed(1)+'万 ÷ 月支出'+currentMonthlyExp.toFixed(1)+'万/月';
+  document.getElementById('totalNet').innerHTML = Math.round(netAsset)+'<span class="unit">万</span>';
+
+  var planLabel = Math.abs(planRetireAge-legalRetireAge)<0.5?'（符合法定）':planRetireAge<legalRetireAge?'（提前退休⚠️）':'（晚于法定）';
+  document.getElementById('planRetire').innerHTML = planRetireAge+'<span class="unit">岁</span>';
+  document.getElementById('retireType').textContent = planLabel;
+  document.getElementById('legalRetire').innerHTML = legalRetireAge+'<span class="unit">岁</span>';
+
+  var maxN = Math.max(netAsset, netAtPlanRetire, net10, 1);
+  document.getElementById('barNow').style.width = (netAsset/maxN*100)+'%';
+  document.getElementById('barRetire').style.width = (netAtPlanRetire/maxN*100)+'%';
+  document.getElementById('bar10y').style.width = (net10/maxN*100)+'%';
+  document.getElementById('valNow').textContent = Math.round(netAsset)+'万';
+  document.getElementById('valRetire').textContent = netAtPlanRetire.toFixed(1)+'万';
+  document.getElementById('val10y').textContent = Math.round(net10)+'万';
+
+  // ===== 阶段一展示 =====
+  document.getElementById('phaseSelfYearsVal').innerHTML = phase1Years.toFixed(1)+'<span class="unit">年</span>';
+  document.getElementById('phaseSelfIncomeVal').innerHTML = retireIncome+'<span class="unit">万/月</span>';
+  document.getElementById('phaseSelfExpenseVal').innerHTML = retireExpW+'<span class="unit">万/月</span>';
+  document.getElementById('phaseSelfNetVal').innerHTML = (phase1NetChange>=0?'+':'')+phase1NetChange+'<span class="unit">万</span>';
+
+  var netEl = document.getElementById('phaseSelfNet');
+  var badge = document.getElementById('phaseSelfBadge');
+  var badgeIcon = document.getElementById('phaseSelfBadgeIcon');
+  var badgeText = document.getElementById('phaseSelfBadgeText');
+  var noteEl = document.getElementById('phaseSelfNote');
+
+  if (isEarlyRetire) {
+    document.getElementById('phaseSelfMeta').textContent = planRetireAge+' → '+legalRetireAge+'岁';
+    document.getElementById('phaseSelfTitle').textContent = '🔥 主动退休期（无社保养老金）';
+
+    if (phase1MonthlyNet > 0) {
+      // 每月消耗
+      netEl.className = 'phase-stat danger';
+      badge.className = 'phase-badge danger';
+      badgeIcon.textContent = '🔥';
+      badgeText.textContent = '高压力';
+      noteEl.className = 'phase-note';
+      document.getElementById('phaseSelfNetVal').innerHTML = '<span class="warn">'+phase1NetChange.toFixed(1)+'</span><span class="unit">万</span>';
+      noteEl.innerHTML = '<strong>从'+planRetireAge+'岁到'+legalRetireAge+'岁，共'+phase1Years.toFixed(1)+'年。</strong>此阶段<strong class="warn">无社保养老金</strong>，完全靠个人资产。<br>'+
+        '月收入 <strong>'+retireIncome+'万</strong>，月支出 <strong class="warn">'+retireExpW+'万</strong>，每月净消耗 <strong class="warn">'+phase1MonthlyNet.toFixed(2)+'万</strong>，累计 <strong class="warn">'+Math.abs(phase1NetChange).toFixed(1)+'万</strong>。<br>'+
+        '到法定退休时净资产剩余 <strong>'+netAtLegalRetire.toFixed(1)+'万</strong>。';
+    } else if (phase1MonthlyNet < 0) {
+      // 每月积累
+      netEl.className = 'phase-stat safe';
+      badge.className = 'phase-badge safe';
+      badgeIcon.textContent = '✓';
+      badgeText.textContent = '可维持';
+      noteEl.className = 'phase-note safe';
+      noteEl.innerHTML = '<strong>从'+planRetireAge+'岁到'+legalRetireAge+'岁，共'+phase1Years.toFixed(1)+'年。</strong>退休后收入<strong class="good">'+retireIncome+'万/月</strong>可覆盖<strong>部分</strong>支出。<br>'+
+        '每月净结余 <strong class="good">'+Math.abs(phase1MonthlyNet).toFixed(2)+'万</strong>，累计增加 <strong class="good">'+phase1NetChange.toFixed(1)+'万</strong>，到法定退休时净资产约 <strong class="good">'+netAtLegalRetire.toFixed(1)+'万</strong>。';
+    } else {
+      // 刚好平衡
+      netEl.className = 'phase-stat';
+      badge.className = 'phase-badge safe';
+      badgeIcon.textContent = '✓';
+      badgeText.textContent = '刚好平衡';
+      noteEl.className = 'phase-note safe';
+      noteEl.innerHTML = '月收入 = 月支出，净资产基本持平，共'+phase1Years.toFixed(1)+'年，到法定退休时净资产约<strong>'+netAtLegalRetire.toFixed(1)+'万</strong>。';
+    }
+  } else {
+    document.getElementById('phaseSelfYearsVal').innerHTML = '0<span class="unit">年</span>';
+    document.getElementById('phaseSelfNetVal').innerHTML = '0<span class="unit">万</span>';
+    document.getElementById('phaseSelfNet').className = 'phase-stat';
+    badge.className = 'phase-badge safe';
+    badgeIcon.textContent = '✓';
+    badgeText.textContent = '无此阶段';
+    document.getElementById('phaseSelfMeta').textContent = '计划退休 = 法定退休';
+    document.getElementById('phaseSelfTitle').textContent = '✓ 主动退休期（计划退休 = 法定退休）';
+    noteEl.innerHTML = '你计划'+planRetireAge+'岁退休，与法定退休年龄相同，没有"无养老金"的阶段。';
+    noteEl.className = 'phase-note safe';
+  }
+
+  // ===== 阶段二展示 =====
+  document.getElementById('pensionBase').innerHTML = Math.round(pension1Yuan)+'<span class="unit">元/月</span>';
+  var baseNote = knownPensionYuan > 0
+    ? '直接使用你填写的已知养老金'
+    : '基础='+basePension+'元 + 个人账户='+personalPensionMonthly+'元（'+(basePension+personalPensionMonthly)+'元=估算值）';
+  document.getElementById('pensionBaseNote').textContent = baseNote;
+
+  var p3Card = document.getElementById('p3Card');
+  if (pension3 > 0) {
+    p3Card.style.display = 'block';
+    document.getElementById('pension3Amt').innerHTML = Math.round(p3Monthly)+'<span class="unit">元/月</span>';
+  } else { p3Card.style.display = 'none'; }
+
+  var annCard = document.getElementById('annuityCard');
+  if (annuityAmtYrW > 0) {
+    annCard.style.display = 'block';
+    document.getElementById('annuityDisplay').innerHTML = Math.round(annuityAmtMonthlyW*10000)+'<span class="unit">元/月</span>';
+    document.getElementById('annuityNote').textContent = annuityStart+'岁起领（'+annuityAmtYrW+'万/年）';
+  } else { annCard.style.display = 'none'; }
+
+  var coverage = Math.round(totalPensionW / retireExpW * 100);
+  document.getElementById('pensionTotal').innerHTML = Math.round(totalPensionYuan)+'<span class="unit">元/月</span>';
+  document.getElementById('pensionNote').textContent = coverage>=100
+    ? '✓ 覆盖退休预期支出的 '+coverage+'%'
+    : '✗ 覆盖 '+coverage+'%，缺口 '+Math.max(0, (retireExpYuan-totalPensionYuan)).toFixed(0)+' 元/月';
+
+  var gap2Card = document.getElementById('gapCard2');
+  document.getElementById('gap1Val').textContent = Math.round(totalPensionYuan)+'元';
+  document.getElementById('gap1Note').textContent = legalRetireAge+'岁起每月入账';
+  if (gapYuanLegal >= 0) {
+    gap2Card.className = 'pension-gap-card rose';
+    document.getElementById('gap2Label').textContent = '每月缺口';
+    document.getElementById('gap2Val').textContent = (gapYuanLegal/10000).toFixed(3)+'万';
+    document.getElementById('gap2Note').textContent = '需从'+netAtLegalRetire.toFixed(1)+'万净资产中支取';
+  } else {
+    gap2Card.className = 'pension-gap-card green';
+    document.getElementById('gap2Label').textContent = '每月富余';
+    document.getElementById('gap2Val').textContent = Math.abs(gapYuanLegal/10000).toFixed(3)+'万';
+    document.getElementById('gap2Note').textContent = '养老金可覆盖支出';
+  }
+
+  // ===== 公式展示 =====
+  var fBaseFormula = document.getElementById('fBaseFormula');
+  var fBaseResult = document.getElementById('fBaseResult');
+  fBaseFormula.textContent = avgSalary+'×(1+'+contribIdx.toFixed(2)+')÷2×'+totalInsYears.toFixed(1)+'年×1% = '+basePension+'元/月';
+  if (knownPensionYuan > 0) {
+    fBaseResult.className = 'f-val';
+    fBaseResult.textContent = '已用已知养老金: '+knownPensionYuan+'元/月';
+  } else {
+    fBaseResult.className = 'f-val';
+    fBaseResult.textContent = '= '+basePension+' 元/月';
+  }
+
+  var fPersonalFormula = document.getElementById('fPersonalFormula');
+  var fPersonalResult = document.getElementById('fPersonalResult');
+  fPersonalFormula.textContent = personalAcctEst.toFixed(0)+' ÷ '+monthsLegal+' = '+personalPensionMonthly+'元/月';
+  fPersonalResult.className = 'f-val';
+  fPersonalResult.textContent = '= '+personalPensionMonthly+' 元/月';
+
+  var fPhase1Formula = document.getElementById('fPhase1Formula');
+  var fPhase1Result = document.getElementById('fPhase1Result');
+  if (isEarlyRetire) {
+    fPhase1Formula.textContent = '('+retireExpW+' - '+retireIncome+') × 12 × '+phase1Years.toFixed(1)+'年';
+    fPhase1Result.className = 'f-val'+(phase1NetChange>=0?' danger':' good');
+    fPhase1Result.textContent = '= '+(phase1NetChange>=0?'-':'+')+Math.abs(phase1NetChange).toFixed(1)+' 万';
+  } else {
+    fPhase1Formula.textContent = '计划退休 = 法定退休，无此阶段';
+    fPhase1Result.className = 'f-val';
+    fPhase1Result.textContent = '= 0';
+  }
+
+  var fGapFormula = document.getElementById('fGapFormula');
+  var fGapResult = document.getElementById('fGapResult');
+  fGapFormula.textContent = retireExpW+'万 - '+totalPensionW.toFixed(3)+'万';
+  fGapResult.className = 'f-val'+(gapYuanLegal>=0?' danger':' good');
+  fGapResult.textContent = '= '+(gapYuanLegal>=0?gapYuanLegal.toFixed(0)+'元/月':Math.abs(gapYuanLegal).toFixed(0)+'元/月（富余）');
+
+}
+
+function calculate() {
+  if (window.innerWidth < 900) document.getElementById('resultsPanel').scrollIntoView({behavior:'smooth'});
+  calc();
+}
+
+</script>
+</body>
+</html>
