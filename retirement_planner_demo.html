@@ -370,6 +370,7 @@
           <div class="hint">可与法定年龄不同</div>
         </div>
       </div>
+
     </div>
 
     <button class="calc-btn" onclick="calculate()">✨ 看看我的退休生活</button>
@@ -539,6 +540,8 @@
             <div class="formula-result"><span class="f-label" id="fGapFormula"></span> <span class="f-val" id="fGapResult"></span></div>
           </div>
         </div>
+        <div class="formula-note">* 净资产增长假设：0%（存量资产不增值，只累加每年净储蓄）</div>
+        <div class="formula-note">* 阶段一消耗：每年净储蓄 - 退休后年净消耗，线性计算</div>
         <div class="formula-note">* 个人账户储存额 = 年实缴额 × [(1+r)^n - 1] / r（r=2.5%年复利，n=缴费年限）</div>
         <div class="formula-note">* 缴费指数 = 实际月缴费基数 ÷ 当年社平工资（上限3.0）</div>
     </div>
@@ -634,44 +637,41 @@ function calc() {
   var survival = currentMonthlyExp > 0 ? Math.round(liquidAsset / currentMonthlyExp) : 999;
 
   var inflRate = 0.02;    // 通胀率：用于折算"今天的购买力"
-  var retRate  = 0.05;    // 投资回报率：资产在退休前的年化增值（保守5%，可调整）
+  // 资产增长假设：不做任何投资回报假设，存量资产不增值
+  // 退休前：净资产 = 现有资产 + 每年净储蓄累加
+  // 退休后：净资产逐年消耗（收入 - 支出），不做增值假设
 
   var yearsToPlan = Math.max(0, planRetireAge - age);      // 距计划退休还有几年
   var yearsToLegal = Math.max(0, legalRetireAge - age);    // 距法定退休还有几年
 
   var monthlyCurrentNet = income - currentMonthlyExp;       // 月净结余（工作期），单位：万/月
 
-  // ===== 分段净值计算 =====
-  // 阶段A：从现在到计划退休——仍在工作，月净结余累加
+  // 阶段A：从现在到计划退休——仍在工作，存量不增值，每年净储蓄累加
   var workYears = yearsToPlan;
   var workNet = monthlyCurrentNet * 12;  // 年净结余（万/年）
-  // FV = PV*(1+r)^n + PMT*((1+r)^n-1)/r
-  var fvWork = netAsset * Math.pow(1 + retRate, workYears) + (workYears > 0 ? workNet * (Math.pow(1 + retRate, workYears) - 1) / retRate : 0);
+  // 存量338万 × 1 = 338万（0增长），+ 每年净储蓄累加
+  var fvWork = netAsset + (workYears > 0 ? workNet * workYears : 0);
+  var netAtPlanRetire = Math.max(0, Math.round(fvWork * 100) / 100);
 
-  // 阶段B：从计划退休到法定退休——无工资，用retireIncome扛支出
+  // 阶段B：从计划退休到法定退休——无工资，资产逐年消耗
   var phase1Years = Math.max(0, legalRetireAge - planRetireAge);
-  var retireMonthlyNet = retireExpW - retireIncome;  // 退休期月净消耗（万/月），正值=消耗
-  var retireAnnualNet = retireMonthlyNet * 12;        // 退休期年净变化（万/年），正值=减少
-  // 此阶段资产持续消耗（retireAnnualNet为正=消耗，负=积累；故用 - 号）
-  var fvAtLegalRetire = fvWork * Math.pow(1 + retRate, phase1Years)
-    - (phase1Years > 0 ? retireAnnualNet * (Math.pow(1 + retRate, phase1Years) - 1) / retRate : 0);
+  var retireMonthlyNet = retireExpW - retireIncome;  // 正值=消耗
+  var retireAnnualNet = retireMonthlyNet * 12;      // 年净消耗（万/年）
+  // 退休后资产：逐年减少，每年 -retireAnnualNet 万（线性消耗，无增值）
+  var fvAtLegalRetire = Math.max(0, fvWork - retireAnnualNet * phase1Years);
+  var netAtLegalRetire = Math.max(0, Math.round(fvAtLegalRetire * 100) / 100);
 
-  // 折现回"今天"：所有未来的钱折算成今天的购买力
-  var netAtPlanRetire = Math.max(0, Math.round(fvWork   * Math.pow(1 + inflRate, -yearsToPlan) * 100) / 100);
-  var netAtLegalRetire = Math.max(0, Math.round(fvAtLegalRetire * Math.pow(1 + inflRate, -yearsToLegal) * 100) / 100);
-
-  // 10年后净值（统一折算逻辑）
+  // 10年后净值
   var years10 = Math.min(10, yearsToLegal);
   if (years10 <= yearsToPlan) {
-    // 仍在工作期，资产持续增值
-    var fv10 = netAsset * Math.pow(1 + retRate, years10);
+    // 仍在工作期，每年净储蓄累加
+    var fv10 = netAsset + workNet * years10;
   } else {
-    // 跨越了计划退休节点，退休后资产消耗
-    var retireYears = years10 - yearsToPlan;  // 退休后持续消耗的年数
-    var fv10 = fvWork * Math.pow(1 + retRate, retireYears)
-      - retireYears * retireAnnualNet;  // 每年消耗 retireAnnualNet 万（线性近似）
+    // 跨越计划退休节点：先积累到退休，再逐年消耗
+    var retireYears = years10 - yearsToPlan;
+    fv10 = Math.max(0, fvWork - retireAnnualNet * retireYears);
   }
-  var net10 = Math.max(0, Math.round(fv10 * Math.pow(1 + inflRate, -years10) * 100) / 100);
+  var net10 = Math.max(0, Math.round(fv10 * 100) / 100);
 
   // 阶段一（法定退休前的无养老金期）的累计净变化
   var isEarlyRetire = planRetireAge < legalRetireAge - 0.5;
