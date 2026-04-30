@@ -135,10 +135,10 @@
     .formula-result .f-val.danger { color: var(--rose); }
     .formula-result .f-val.good { color: var(--green); }
     .formula-note { font-size: 10px; color: var(--text-muted); margin-top: 4px; font-style: italic; }
-    .scene-card { background: linear-gradient(135deg,#f0f6fc,#eef5fa); border-radius: var(--radius); padding: 20px 24px; box-shadow: var(--shadow); display: flex; align-items: center; gap: 40px; }
-    .scene-title { font-size: 12px; letter-spacing: 1px; color: var(--text-muted); white-space: nowrap; }
-    .scene-items { display: flex; flex-direction: column; gap: 10px; flex: 1; }
+    .scene-card { background: linear-gradient(135deg,#f0f6fc,#eef5fa); border-radius: var(--radius); padding: 20px 24px; box-shadow: var(--shadow); }
+    .scene-items { display: flex; flex-direction: column; gap: 10px; }
     .scene-item { display: flex; align-items: center; gap: 10px; }
+    .scene-item.scene-header-item .scene-text { font-size: 12px; letter-spacing: 1px; color: var(--text-muted); text-transform: uppercase; }
     .scene-emoji { font-size: 16px; }
     .scene-text { font-size: 13px; color: var(--text); }
     .scene-sub { font-size: 11px; color: var(--text-muted); }
@@ -381,8 +381,8 @@
 
     <div id="resultsPanel">
       <div class="scene-card">
-        <div class="scene-title">退休后的生活，可以是这样的</div>
         <div class="scene-items" id="sceneItems">
+          <div class="scene-item scene-header-item"><span class="scene-emoji">🌿</span><div><div class="scene-text">退休后的生活，可以是这样的</div></div></div>
           <div class="scene-item"><span class="scene-emoji">☕</span><div><div class="scene-text">每天睡到自然醒</div><div class="scene-sub">再也不用定闹钟了</div></div></div>
           <div class="scene-item"><span class="scene-emoji">🌿</span><div><div class="scene-text">在喜欢的地方住下</div><div class="scene-sub">想去哪儿就去哪儿</div></div></div>
           <div class="scene-item"><span class="scene-emoji">📚</span><div><div class="scene-text">终于有大把时间读书</div><div class="scene-sub">书架上那些落灰的书可以看了</div></div></div>
@@ -652,8 +652,9 @@ function calc() {
   var phase1Years = Math.max(0, legalRetireAge - planRetireAge);
   var retireMonthlyNet = retireExpW - retireIncome;  // 退休期月净消耗（万/月），正值=消耗
   var retireAnnualNet = retireMonthlyNet * 12;        // 退休期年净变化（万/年），正值=减少
-  // 此阶段资产持续消耗（按retRate增值/减值）
-  var fvAtLegalRetire = fvWork * Math.pow(1 + retRate, phase1Years) + (phase1Years > 0 ? retireAnnualNet * (Math.pow(1 + retRate, phase1Years) - 1) / retRate : 0);
+  // 此阶段资产持续消耗（retireAnnualNet为正=消耗，负=积累；故用 - 号）
+  var fvAtLegalRetire = fvWork * Math.pow(1 + retRate, phase1Years)
+    - (phase1Years > 0 ? retireAnnualNet * (Math.pow(1 + retRate, phase1Years) - 1) / retRate : 0);
 
   // 折现回"今天"：所有未来的钱折算成今天的购买力
   var netAtPlanRetire = Math.max(0, Math.round(fvWork   * Math.pow(1 + inflRate, -yearsToPlan) * 100) / 100);
@@ -661,11 +662,14 @@ function calc() {
 
   // 10年后净值（统一折算逻辑）
   var years10 = Math.min(10, yearsToLegal);
-  var fv10 = netAsset * Math.pow(1 + retRate, years10);
-  if (years10 > yearsToPlan) {
-    // 跨越了计划退休节点
-    fv10 = fvWork * Math.pow(1 + retRate, years10 - yearsToPlan);
-    fv10 += (years10 - yearsToPlan) > 0 ? retireAnnualNet * (Math.pow(1 + retRate, years10 - yearsToPlan) - 1) / retRate : 0;
+  if (years10 <= yearsToPlan) {
+    // 仍在工作期，资产持续增值
+    var fv10 = netAsset * Math.pow(1 + retRate, years10);
+  } else {
+    // 跨越了计划退休节点，退休后资产消耗
+    var retireYears = years10 - yearsToPlan;  // 退休后持续消耗的年数
+    var fv10 = fvWork * Math.pow(1 + retRate, retireYears)
+      - retireYears * retireAnnualNet;  // 每年消耗 retireAnnualNet 万（线性近似）
   }
   var net10 = Math.max(0, Math.round(fv10 * Math.pow(1 + inflRate, -years10) * 100) / 100);
 
